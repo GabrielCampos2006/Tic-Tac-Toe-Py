@@ -13,9 +13,9 @@ tela = pygame.display.set_mode((largura, altura))
 pygame.display.set_caption("Jogo da Velha")
 
 #as imagens
-VELHA = pygame.image.load('Tic-Tac-Toe-Py/pygame/assets/Board.png')
-IMG_X = pygame.image.load('Tic-Tac-Toe-Py/pygame/assets/O.png')
-IMG_O = pygame.image.load('Tic-Tac-Toe-Py/pygame/assets/X.png')
+VELHA = pygame.image.load('pygame/assets/Board.png')
+IMG_X = pygame.image.load('pygame/assets/O.png')
+IMG_O = pygame.image.load('pygame/assets/X.png')
 
 #cor, por formato RGB
 cor_da_tela = (214, 201, 227)
@@ -49,7 +49,7 @@ def Vitoria(campo):
                 """Por algum motivo ocorre um bug, aonde a imagem vencedora esta inverso ao que ganhou
                 ou seja, caso quem ganhou fosse o X, então a imagem vencedora mostra o O, então eu inverti
                 o nome da imagem, tanto que for ver o Winning X, aparece na verdade o O"""
-                campo_grafico[linha][i][0] = pygame.image.load(f"Tic-Tac-Toe-Py/pygame/assets/Winning {vencedor}.png")
+                campo_grafico[linha][i][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
                 tela.blit(campo_grafico[linha][i][0], campo_grafico[linha][i][1])
 
             pygame.display.update()
@@ -62,7 +62,7 @@ def Vitoria(campo):
             vencedor = campo[0][coluna]
 
             for j in range(0, 3):
-                campo_grafico[j][coluna][0] = pygame.image.load(f"Tic-Tac-Toe-Py/pygame/assets/Winning {vencedor}.png")
+                campo_grafico[j][coluna][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
                 tela.blit(campo_grafico[j][coluna][0], campo_grafico[j][coluna][1])
 
             pygame.display.update()
@@ -73,13 +73,13 @@ def Vitoria(campo):
     if (campo[0][0] == campo[1][1] == campo[2][2]) and (campo[0][0] is not None):
         vencedor =  campo[0][0]
 
-        campo_grafico[0][0][0] = pygame.image.load(f"Tic-Tac-Toe-Py/pygame/assets/Winning {vencedor}.png")
+        campo_grafico[0][0][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
         tela.blit(campo_grafico[0][0][0], campo_grafico[0][0][1])
 
-        campo_grafico[1][1][0] = pygame.image.load(f"Tic-Tac-Toe-Py/pygame/assets/Winning {vencedor}.png")
+        campo_grafico[1][1][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
         tela.blit(campo_grafico[1][1][0], campo_grafico[1][1][1])
 
-        campo_grafico[2][2][0] = pygame.image.load(f"Tic-Tac-Toe-Py/pygame/assets/Winning {vencedor}.png")
+        campo_grafico[2][2][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
         tela.blit(campo_grafico[2][2][0], campo_grafico[2][2][1])
         pygame.display.update()
 
@@ -89,13 +89,13 @@ def Vitoria(campo):
     if (campo[0][2] == campo[1][1] == campo[2][0]) and (campo[0][2] is not None):
         vencedor =  campo[0][2]
 
-        campo_grafico[0][2][0] = pygame.image.load(f"Tic-Tac-Toe-Py/pygame/assets/Winning {vencedor}.png")
+        campo_grafico[0][2][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
         tela.blit(campo_grafico[0][2][0], campo_grafico[0][2][1])
 
-        campo_grafico[1][1][0] = pygame.image.load(f"Tic-Tac-Toe-Py/pygame/assets/Winning {vencedor}.png")
+        campo_grafico[1][1][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
         tela.blit(campo_grafico[1][1][0], campo_grafico[1][1][1])
 
-        campo_grafico[2][0][0] = pygame.image.load(f"Tic-Tac-Toe-Py/pygame/assets/Winning {vencedor}.png")
+        campo_grafico[2][0][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
         tela.blit(campo_grafico[2][0][0], campo_grafico[2][0][1])
 
         pygame.display.update()
