@@ -14,14 +14,14 @@ pygame.display.set_caption("Jogo da Velha")
 
 #as imagens
 VELHA = pygame.image.load('pygame/assets/Board.png')
-IMG_X = pygame.image.load('pygame/assets/O.png')
-IMG_O = pygame.image.load('pygame/assets/X.png')
+IMG_X = pygame.image.load('pygame/assets/X.png')
+IMG_O = pygame.image.load('pygame/assets/O.png')
 
 #cor, por formato RGB
 cor_da_tela = (214, 201, 227)
 
 #as grid do jogo da velha
-campo = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+campo = [[None, None, None], [None, None, None], [None, None, None]]
 campo_grafico = [[[None, None], [None, None], [None, None]], 
                     [[None, None], [None, None], [None, None]], 
                     [[None, None], [None, None], [None, None]]]
@@ -40,7 +40,7 @@ def Vitoria(campo):
 
     #verifica se tem vitória de forma horizontal
     for linha in range(0, 3):
-        if((campo[linha][0] == campo[linha][1] == campo[linha][0]) and (campo[linha][0] is not None)):
+        if((campo[linha][0] == campo[linha][1] == campo[linha][2]) and (campo[linha][0] is not None)):
             vencedor = campo[linha][0]
 
             #caso tiver um linha horizontal, vai colocar a imagem vencedora
@@ -48,8 +48,8 @@ def Vitoria(campo):
 
                 """Por algum motivo ocorre um bug, aonde a imagem vencedora esta inverso ao que ganhou
                 ou seja, caso quem ganhou fosse o X, então a imagem vencedora mostra o O, então eu inverti
-                o nome da imagem, tanto que for ver o Winning X, aparece na verdade o O"""
-                campo_grafico[linha][i][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
+                o nome da imagem, tanto que for ver o Ganha_X, aparece na verdade o O"""
+                campo_grafico[linha][i][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
                 tela.blit(campo_grafico[linha][i][0], campo_grafico[linha][i][1])
 
             pygame.display.update()
@@ -62,7 +62,7 @@ def Vitoria(campo):
             vencedor = campo[0][coluna]
 
             for j in range(0, 3):
-                campo_grafico[j][coluna][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
+                campo_grafico[j][coluna][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
                 tela.blit(campo_grafico[j][coluna][0], campo_grafico[j][coluna][1])
 
             pygame.display.update()
@@ -73,13 +73,13 @@ def Vitoria(campo):
     if (campo[0][0] == campo[1][1] == campo[2][2]) and (campo[0][0] is not None):
         vencedor =  campo[0][0]
 
-        campo_grafico[0][0][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
+        campo_grafico[0][0][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
         tela.blit(campo_grafico[0][0][0], campo_grafico[0][0][1])
 
-        campo_grafico[1][1][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
+        campo_grafico[1][1][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
         tela.blit(campo_grafico[1][1][0], campo_grafico[1][1][1])
 
-        campo_grafico[2][2][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
+        campo_grafico[2][2][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
         tela.blit(campo_grafico[2][2][0], campo_grafico[2][2][1])
         pygame.display.update()
 
@@ -89,13 +89,13 @@ def Vitoria(campo):
     if (campo[0][2] == campo[1][1] == campo[2][0]) and (campo[0][2] is not None):
         vencedor =  campo[0][2]
 
-        campo_grafico[0][2][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
+        campo_grafico[0][2][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
         tela.blit(campo_grafico[0][2][0], campo_grafico[0][2][1])
 
-        campo_grafico[1][1][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
+        campo_grafico[1][1][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
         tela.blit(campo_grafico[1][1][0], campo_grafico[1][1][1])
 
-        campo_grafico[2][0][0] = pygame.image.load(f"pygame/assets/Winning {vencedor}.png")
+        campo_grafico[2][0][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
         tela.blit(campo_grafico[2][0][0], campo_grafico[2][0][1])
 
         pygame.display.update()
@@ -106,7 +106,7 @@ def Vitoria(campo):
     if vencedor is None:
         for i in range(len(campo)):
             for j in range(len(campo)):
-                if campo[i][j] != 'X' and campo[i][j] != 'O':
+                if campo[i][j] is None:
                     return None
         return "EMPATE"
 
@@ -129,14 +129,17 @@ def Campo_Renderizado(campo, img_x, img_o):
 def X_ou_O(campo, campo_grafico, mover):
     #comando que retorna a posição atual do mouse
     posicao_atual = pygame.mouse.get_pos()
+    #Divisão inteira  por 300 pixels resolve o clique exato
+    coluna = posicao_atual[0] // 300
+    linha = posicao_atual[1] // 300
 
-    #forma de centralizar o quadrado
-    x_centralizado = ((posicao_atual[0] - 65) / 835) * 2
-    y_centralizado = (posicao_atual[1] / 835) * 2
+    #evita erro de índice caso o clique seja na linha de borda final
+    if coluna == 3: coluna = 2
+    if linha == 3: linha = 2
 
-    #verifica se o capo está vazio
-    if campo[round(y_centralizado)][round(x_centralizado)] != 'O' and campo[round(y_centralizado)][round(x_centralizado)] != "X":
-        campo[round(y_centralizado)][round(x_centralizado)] = mover
+    #verifica se o campo está vazio
+    if campo[linha][coluna] is None:
+        campo[linha][coluna] = mover
 
         if mover == "O":
             mover = "X"
@@ -162,11 +165,9 @@ while True:
 
         #quando clicar no jogo aparece ou o X ou o O
         if evento.type == pygame.MOUSEBUTTONDOWN:
-            campo, mover = X_ou_O(campo, campo_grafico, mover)
-
             #código para quando for reiniciar o jogo
             if jogo_finalizado:
-                campo = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+                campo = [[None, None, None], [None, None, None], [None, None, None]]
                 campo_grafico = [[[None, None], [None, None], [None, None]], 
                                     [[None, None], [None, None], [None, None]], 
                                     [[None, None], [None, None], [None, None]]]
@@ -179,8 +180,10 @@ while True:
                 jogo_finalizado = False
 
                 pygame.display.update()
+            else:
+                campo, mover = X_ou_O(campo, campo_grafico, mover)
 
-            if Vitoria(campo) is not None:
-                jogo_finalizado = True
+                if Vitoria(campo) is not None:
+                    jogo_finalizado = True
 
             pygame.display.update()
