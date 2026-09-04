@@ -26,14 +26,55 @@ campo_grafico = [[[None, None], [None, None], [None, None]],
                     [[None, None], [None, None], [None, None]], 
                     [[None, None], [None, None], [None, None]]]
 
-mover = "X"
+def jogar_manual():
+    global campo, campo_grafico
+    #as grid do jogo da velha
+    campo = [[None, None, None], [None, None, None], [None, None, None]]
+    campo_grafico = [[[None, None], [None, None], [None, None]], 
+                        [[None, None], [None, None], [None, None]], 
+                        [[None, None], [None, None], [None, None]]]
+    jogo_finalizado = False
 
-#está implemetando a cor no jogo e desenhando os formatos do jogo
-tela.fill(cor_da_tela)
-tela.blit(VELHA, (64, 64))
+    #está implemetando a cor no jogo e desenhando os formatos do jogo
+    tela.fill(cor_da_tela)
+    tela.blit(VELHA, (64, 64))
 
-#atualizando o jogo para implementar as mudanças
-pygame.display.update()
+    #atualizando o jogo para implementar as mudanças
+    pygame.display.update()
+
+    mover = "X"
+    while True:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            #quando clicar no jogo aparece ou o X ou o O
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                #código para quando for reiniciar o jogo
+                if jogo_finalizado:
+                    campo = [[None, None, None], [None, None, None], [None, None, None]]
+                    campo_grafico = [[[None, None], [None, None], [None, None]], 
+                                        [[None, None], [None, None], [None, None]], 
+                                        [[None, None], [None, None], [None, None]]]
+
+                    mover = "X"
+
+                    tela.fill(cor_da_tela)
+                    tela.blit(VELHA, (64, 64))
+
+                    jogo_finalizado = False
+
+                    pygame.display.update()
+                else:
+                    campo, mover = X_ou_O(campo, campo_grafico, mover)
+
+                    if Vitoria(campo) is not None:
+                        jogo_finalizado = True
+
+                pygame.display.update()
+
+
 
 def Vitoria(campo):
     vencedor = None
@@ -155,35 +196,44 @@ def X_ou_O(campo, campo_grafico, mover):
 
     return campo, mover
 
-jogo_finalizado = False
+def teste_automatizado():
+    print("\nExecutando teste automatizado (A implementar...)")
+    pygame.quit()
+    sys.exit()
 
-while True:
-    for evento in pygame.event.get():
-        if evento.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+def jogar_minimax_basico():
+    print("\nIniciando jogo contra Minimax Básico (A implementar...)")
+    pygame.quit()
+    sys.exit()
 
-        #quando clicar no jogo aparece ou o X ou o O
-        if evento.type == pygame.MOUSEBUTTONDOWN:
-            #código para quando for reiniciar o jogo
-            if jogo_finalizado:
-                campo = [[None, None, None], [None, None, None], [None, None, None]]
-                campo_grafico = [[[None, None], [None, None], [None, None]], 
-                                    [[None, None], [None, None], [None, None]], 
-                                    [[None, None], [None, None], [None, None]]]
+def jogar_minimax_poda():
+    print("\nIniciando jogo contra Minimax com Poda Alfa-Beta (A implementar...)")
+    pygame.quit()
+    sys.exit()
 
-                mover = "X"
 
-                tela.fill(cor_da_tela)
-                tela.blit(VELHA, (64, 64))
+if __name__ == "__main__":
+    print("-" * 50)
+    print(" ESCOLHA O MODO DE JOGO ")
+    print("-" * 50)
+    print("1. Jogo Manual (2 Jogadores)")
+    print("2. Teste Automatizado (100 partidas)")
+    print("3. Jogar contra Minimax Básico")
+    print("4. Jogar contra Minimax Poda Alfa-Beta")
+    print("-" * 50)
 
-                jogo_finalizado = False
+    escolha = input("Digite o número da opção desejada no terminal: ")
 
-                pygame.display.update()
-            else:
-                campo, mover = X_ou_O(campo, campo_grafico, mover)
-
-                if Vitoria(campo) is not None:
-                    jogo_finalizado = True
-
-            pygame.display.update()
+    if escolha == '1':
+        print("Abra a janela do Pygame para jogar!")
+        jogar_manual()
+    elif escolha == '2':
+        teste_automatizado()
+    elif escolha == '3':
+        jogar_minimax_basico()
+    elif escolha == '4':
+        jogar_minimax_poda()
+    else:
+        print("Opção inválida. Encerrando...")
+        pygame.quit()
+        sys.exit()
