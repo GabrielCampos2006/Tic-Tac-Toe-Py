@@ -2,31 +2,7 @@ import pygame
 import sys
 import random
 
-#comando para iniciar o jogo
-pygame.init()
 
-largura, altura = 900, 900
-
-#Codigos Básicos
-#tamanho do nosso jogo
-tela = pygame.display.set_mode((largura, altura))
-
-#nome do jogo
-pygame.display.set_caption("Jogo da Velha")
-
-#as imagens
-VELHA = pygame.image.load('assets/Board.png')
-IMG_X = pygame.image.load('assets/X.png')
-IMG_O = pygame.image.load('assets/O.png')
-
-#cor, por formato RGB
-cor_da_tela = (214, 201, 227)
-
-#as grid do jogo da velha
-campo = [[None, None, None], [None, None, None], [None, None, None]]
-campo_grafico = [[[None, None], [None, None], [None, None]], 
-                    [[None, None], [None, None], [None, None]], 
-                    [[None, None], [None, None], [None, None]]]
 def Vitoria(campo):
     vencedor = None
 
@@ -593,8 +569,47 @@ def teste_automatizado():
     print(f"Alpha-Beta: {resultado_alfa_beta['total_nos']} nós")
     print(f"Redução com Alpha-Beta: {diferenca} nós")
 
+def _normalizar_tabuleiro(tabuleiro):
+    return [[v if v in ("X", "O") else None for v in linha] for linha in tabuleiro]
+
+def _trocar_simbolos(tabuleiro):
+    troca = {"X": "O", "O": "X"}
+    return [[troca.get(v, v) for v in linha] for linha in tabuleiro]
+
+def obter_jogada_ia(tabuleiro, simbolo_ia, usar_poda=True):
+    tabuleiro_calculo = _normalizar_tabuleiro(tabuleiro)
+    if simbolo_ia != "O":
+        tabuleiro_calculo = _trocar_simbolos(tabuleiro_calculo)
+    if usar_poda:
+        return obter_melhor_jogada_alfa_beta(tabuleiro_calculo)
+    return obter_melhor_jogada_basico(tabuleiro_calculo)
 
 if __name__ == "__main__":
+    #comando para iniciar o jogo
+    pygame.init()
+
+    largura, altura = 900, 900
+
+    #Codigos Básicos
+    #tamanho do nosso jogo
+    tela = pygame.display.set_mode((largura, altura))
+
+    #nome do jogo
+    pygame.display.set_caption("Jogo da Velha")
+
+    #as imagens
+    VELHA = pygame.image.load('assets/Board.png')
+    IMG_X = pygame.image.load('assets/X.png')
+    IMG_O = pygame.image.load('assets/O.png')
+
+    #cor, por formato RGB
+    cor_da_tela = (214, 201, 227)
+
+    #as grid do jogo da velha
+    campo = [[None, None, None], [None, None, None], [None, None, None]]
+    campo_grafico = [[[None, None], [None, None], [None, None]], 
+                    [[None, None], [None, None], [None, None]], 
+                    [[None, None], [None, None], [None, None]]]
     print("-" * 50)
     print(" ESCOLHA O MODO DE JOGO ")
     print("-" * 50)

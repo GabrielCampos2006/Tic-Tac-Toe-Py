@@ -1,5 +1,8 @@
 import pygame
 import sys
+import io
+import contextlib
+from TTT import obter_jogada_ia, teste_automatizado
 
 #comando para iniciar o jogo
 pygame.init()
@@ -124,6 +127,9 @@ estado_atual = "MENU"
 modo_de_jogo = None   
 resultado_texto = ""  
 simbolo_jogador = "X" 
+teste_logs = None
+
+
 
 def desenhar_botao(texto, x, y, largura, altura, cor_normal, cor_hover):
     mouse_pos = pygame.mouse.get_pos()
@@ -184,6 +190,7 @@ while True:
                     estado_atual = "ESCOLHER_SIMBOLO"
                 elif b4.collidepoint(pos):
                     estado_atual = "TESTE"
+                    teste_logs = None
 
     # Tela de Escolher Símbolo
     elif estado_atual == "ESCOLHER_SIMBOLO":
@@ -232,9 +239,31 @@ while True:
                             resultado_texto = "A IA ganhou!"
                         estado_atual = "FIM_DE_JOGO"
 
-        elif mover != simbolo_jogador and modo_de_jogo in ["MINIMAX", "ALFA_BETA"]:
-            pass #Ao implementar a IA, aqui tira esse pass e implemente a logica  da IA aqui 
+        simbolo_ia = "O" if simbolo_jogador == "X" else "X"
+        usar_poda = (modo_de_jogo == "ALFA_BETA")
 
+        (i, j), nos = obter_jogada_ia(campo, simbolo_ia, usar_poda)
+        campo[i][j] = simbolo_ia
+        mover = simbolo_jogador
+
+        Campo_Renderizado(campo, IMG_X, IMG_O)
+        for a in range(3):
+            for b in range(3):
+                if campo_grafico[a][b][0] is not None:
+                    tela.blit(campo_grafico[a][b][0], campo_grafico[a][b][1])
+        pygame.display.update()
+
+        vencedor_atual = Vitoria(campo)
+        if vencedor_atual is not None:
+            pygame.time.delay(400)
+            if vencedor_atual == "EMPATE":
+                resultado_texto = "Empate!"
+            elif vencedor_atual == simbolo_jogador:
+                resultado_texto = "Você ganhou!"
+            else:
+                resultado_texto = "A IA ganhou!"
+            estado_atual = "FIM_DE_JOGO"
+       
     # Tela do fim de jogo
     elif estado_atual == "FIM_DE_JOGO":
         pygame.draw.rect(tela, (50, 50, 50), (250, 300, 400, 300), border_radius=15)
@@ -259,14 +288,31 @@ while True:
     elif estado_atual == "TESTE":
         tela.fill((30, 30, 30))
         titulo_logs = fonte_titulo.render("Teste Automatizado", True, (255, 255, 255))
-        tela.blit(titulo_logs, (largura//2 - titulo_logs.get_width()//2, 50))
-        
-        bt_voltar_teste = desenhar_botao("Voltar ao Menu", 300, 750, 300, 50, (178, 34, 34), (220, 20, 60))
-        
-        for evento in eventos:
-            if evento.type == pygame.MOUSEBUTTONDOWN:
-                pos = pygame.mouse.get_pos()
-                if bt_voltar_teste.collidepoint(pos):
-                    estado_atual = "MENU"
+        tela.blit(titulo_logs, (largura//2 - titulo_logs.get_width()//2, 30))
+
+    if teste_logs is None:
+        pygame.display.update()  # mostra o título antes de travar rodando as 200 partidas
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            teste_automatizado()
+        linhas_brutas = buffer.getvalue().splitlines()
+        teste_logs = [l for l in linhas_brutas if l.strip() and set(l.strip()) != {"="}]
+
+    fonte_logs = pygame.font.SysFont(None, 28)
+    y = 100
+    for linha in teste_logs:
+        tela.blit(fonte_logs.render(linha, True, (220, 220, 220)), (50, y))
+        y += 30
+
+    bt_rodar_de_novo = desenhar_botao("Rodar Teste Novamente", 275, 700, 350, 50, (34, 139, 34), (50, 205, 50))
+    bt_voltar_teste = desenhar_botao("Voltar ao Menu", 300, 770, 300, 50, (178, 34, 34), (220, 20, 60))
+
+    for evento in eventos:
+        if evento.type == pygame.MOUSEBUTTONDOWN:
+            pos = pygame.mouse.get_pos()
+            if bt_rodar_de_novo.collidepoint(pos):
+                teste_logs = None
+            elif bt_voltar_teste.collidepoint(pos):
+                estado_atual = "MENU"
 
     pygame.display.update()
