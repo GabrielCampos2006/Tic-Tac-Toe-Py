@@ -1,5 +1,6 @@
 import pygame
 import sys
+import random
 
 #comando para iniciar o jogo
 pygame.init()
@@ -14,9 +15,9 @@ tela = pygame.display.set_mode((largura, altura))
 pygame.display.set_caption("Jogo da Velha")
 
 #as imagens
-VELHA = pygame.image.load('pygame/assets/Board.png')
-IMG_X = pygame.image.load('pygame/assets/X.png')
-IMG_O = pygame.image.load('pygame/assets/O.png')
+VELHA = pygame.image.load('assets/Board.png')
+IMG_X = pygame.image.load('assets/X.png')
+IMG_O = pygame.image.load('assets/O.png')
 
 #cor, por formato RGB
 cor_da_tela = (214, 201, 227)
@@ -285,6 +286,90 @@ def obter_melhor_jogada_alfa_beta(tabuleiro):
                     
     return melhor_movimento, nos_avaliados_poda
 
+def obter_movimento_aleatorio(tabuleiro):
+    movimentos_disponiveis = []
+
+    for i in range(3):
+        for j in range(3):
+            if tabuleiro[i][j] is None:
+                movimentos_disponiveis.append((i, j))
+
+    if movimentos_disponiveis:
+        return random.choice(movimentos_disponiveis)
+
+    return None
+
+def jogar_partida_automatizada(algoritmo):
+    tabuleiro = [
+        [None, None, None],
+        [None, None, None],
+        [None, None, None]
+    ]
+
+    jogador_atual = "X"
+    total_nos = 0
+
+    while True:
+        if jogador_atual == "X":
+            movimento = obter_movimento_aleatorio(tabuleiro)
+
+            if movimento is not None:
+                linha, coluna = movimento
+                tabuleiro[linha][coluna] = "X"
+        else:
+            if algoritmo == "MINIMAX":
+                movimento, nos = obter_melhor_jogada_basico(tabuleiro)
+            else:
+                movimento, nos = obter_melhor_jogada_alfa_beta(tabuleiro)
+
+            total_nos += nos
+
+            if movimento is not None:
+                linha, coluna = movimento
+                tabuleiro[linha][coluna] = "O"
+        
+        resultado = avaliar_estado_silencioso(tabuleiro)
+
+        if resultado is not None:
+            return resultado, total_nos
+
+        if jogador_atual == "X":
+            jogador_atual = "O"
+        else:
+            jogador_atual = "X"
+
+
+def executar_teste(algoritmo, quantidade_partidas=100):
+    vitorias_ia = 0
+    derrotas_ia = 0
+    empates = 0
+    total_nos = 0
+
+    for partida in range(quantidade_partidas):
+        resultado, nos = jogar_partida_automatizada(algoritmo)
+
+        total_nos += nos
+
+        if resultado == "O":
+            vitorias_ia += 1
+        elif resultado == "X":
+            derrotas_ia += 1
+        elif resultado == "EMPATE":
+            empates += 1
+
+    media_nos = total_nos / quantidade_partidas
+
+    return {
+        "algoritmo": algoritmo,
+        "partidas": quantidade_partidas,
+        "vitorias_ia": vitorias_ia,
+        "derrotas_ia": derrotas_ia,
+        "empates": empates,
+        "total_nos": total_nos,
+        "media_nos": media_nos
+    }
+
+
 def jogar_manual():
     global campo, campo_grafico
     #as grid do jogo da velha
@@ -467,10 +552,47 @@ def jogar_minimax_poda():
                         jogo_finalizado = True
                 
                 pygame.display.update()
+
 def teste_automatizado():
-    print("\nExecutando teste automatizado (A implementar...)")
-    pygame.quit()
-    sys.exit()
+    print("\n" + "=" * 60)
+    print("TESTE AUTOMATIZADO - MINIMAX")
+    print("=" * 60)
+
+    resultado_minimax = executar_teste("MINIMAX", 100)
+
+    print(f"Partidas: {resultado_minimax['partidas']}")
+    print(f"Vitórias da IA: {resultado_minimax['vitorias_ia']}")
+    print(f"Derrotas da IA: {resultado_minimax['derrotas_ia']}")
+    print(f"Empates: {resultado_minimax['empates']}")
+    print(f"Total de nós avaliados: {resultado_minimax['total_nos']}")
+    print(f"Média de nós por partida: {resultado_minimax['media_nos']:.2f}")
+
+    print("\n" + "=" * 60)
+    print("TESTE AUTOMATIZADO - ALPHA-BETA")
+    print("=" * 60)
+
+    resultado_alfa_beta = executar_teste("ALFA_BETA", 100)
+
+    print(f"Partidas: {resultado_alfa_beta['partidas']}")
+    print(f"Vitórias da IA: {resultado_alfa_beta['vitorias_ia']}")
+    print(f"Derrotas da IA: {resultado_alfa_beta['derrotas_ia']}")
+    print(f"Empates: {resultado_alfa_beta['empates']}")
+    print(f"Total de nós avaliados: {resultado_alfa_beta['total_nos']}")
+    print(f"Média de nós por partida: {resultado_alfa_beta['media_nos']:.2f}")
+
+    print("\n" + "=" * 60)
+    print("COMPARAÇÃO")
+    print("=" * 60)
+
+    diferenca = (
+        resultado_minimax["total_nos"]
+        - resultado_alfa_beta["total_nos"]
+    )
+
+    print(f"Minimax: {resultado_minimax['total_nos']} nós")
+    print(f"Alpha-Beta: {resultado_alfa_beta['total_nos']} nós")
+    print(f"Redução com Alpha-Beta: {diferenca} nós")
+
 
 if __name__ == "__main__":
     print("-" * 50)

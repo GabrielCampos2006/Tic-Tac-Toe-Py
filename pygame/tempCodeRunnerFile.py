@@ -1,2 +1,2 @@
 
-            return campo[0][coluna]
+            #return campo[0][coluna]
