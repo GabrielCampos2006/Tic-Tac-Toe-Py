@@ -4,6 +4,13 @@ import io
 import contextlib
 from TTT import obter_jogada_ia, teste_automatizado
 
+import os
+
+PASTA_DO_JOGO = os.path.dirname(os.path.abspath(__file__))
+
+def caminho_asset(nome_arquivo):
+    return os.path.join(PASTA_DO_JOGO, "assets", nome_arquivo)
+
 #comando para iniciar o jogo
 pygame.init()
 
@@ -16,9 +23,9 @@ tela = pygame.display.set_mode((largura, altura))
 pygame.display.set_caption("Jogo da Velha")
 
 #as imagens 
-VELHA = pygame.image.load('assets/Board.png')
-IMG_X = pygame.image.load('assets/X.png')
-IMG_O = pygame.image.load('assets/O.png')
+VELHA = pygame.image.load(caminho_asset('Board.png'))
+IMG_X = pygame.image.load(caminho_asset('X.png'))
+IMG_O = pygame.image.load(caminho_asset('O.png'))
 
 #cor, por formato RGB
 cor_da_tela = (214, 201, 227)
