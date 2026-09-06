@@ -1,147 +1,33 @@
 import pygame
 import sys
 import random
+import io
+import contextlib
+import os
 
+PASTA_DO_JOGO = os.path.dirname(os.path.abspath(__file__))
 
-def Vitoria(campo):
-    vencedor = None
+def caminho_asset(nome_arquivo):
+    return os.path.join(PASTA_DO_JOGO, "assets", nome_arquivo)
 
-    #verifica se tem vitória de forma horizontal
-    for linha in range(0, 3):
-        if((campo[linha][0] == campo[linha][1] == campo[linha][2]) and (campo[linha][0] is not None)):
-            vencedor = campo[linha][0]
-
-            #caso tiver um linha horizontal, vai colocar a imagem vencedora
-            for i in range(0, 3):
-                campo_grafico[linha][i][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
-                tela.blit(campo_grafico[linha][i][0], campo_grafico[linha][i][1])
-
-            pygame.display.update()
-
-            return vencedor
-
-    #verifica se tem vitoria vertical
-    for coluna in range(0, 3):
-        if((campo[0][coluna] == campo[1][coluna] == campo[2][coluna]) and (campo[0][coluna] is not None)):
-            vencedor = campo[0][coluna]
-
-            for j in range(0, 3):
-                campo_grafico[j][coluna][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
-                tela.blit(campo_grafico[j][coluna][0], campo_grafico[j][coluna][1])
-
-            pygame.display.update()
-
-            return vencedor
-
-    #verifica se tem vitoria na diagonal principal
-    if (campo[0][0] == campo[1][1] == campo[2][2]) and (campo[0][0] is not None):
-        vencedor =  campo[0][0]
-
-        campo_grafico[0][0][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
-        tela.blit(campo_grafico[0][0][0], campo_grafico[0][0][1])
-
-        campo_grafico[1][1][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
-        tela.blit(campo_grafico[1][1][0], campo_grafico[1][1][1])
-
-        campo_grafico[2][2][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
-        tela.blit(campo_grafico[2][2][0], campo_grafico[2][2][1])
-        pygame.display.update()
-
-        return vencedor
-
-    #verifica se tem vitória na diagonal secundária
-    if (campo[0][2] == campo[1][1] == campo[2][0]) and (campo[0][2] is not None):
-        vencedor =  campo[0][2]
-
-        campo_grafico[0][2][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
-        tela.blit(campo_grafico[0][2][0], campo_grafico[0][2][1])
-
-        campo_grafico[1][1][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
-        tela.blit(campo_grafico[1][1][0], campo_grafico[1][1][1])
-
-        campo_grafico[2][0][0] = pygame.image.load(f"pygame/assets/Ganha_{vencedor}.png")
-        tela.blit(campo_grafico[2][0][0], campo_grafico[2][0][1])
-
-        pygame.display.update()
-
-        return vencedor
-
-    #verifica se não vitoria, causando em empate
-    if vencedor is None:
-        for i in range(len(campo)):
-            for j in range(len(campo)):
-                if campo[i][j] is None:
-                    return None
-        return "EMPATE"
-
-
-def Campo_Renderizado(campo, img_x, img_o):
-    global campo_grafico
-
-    for i in range(3):
-        for j in range(3):
-
-            #está implementado a imagem no jogo
-            if campo[i][j] == "X":
-                campo_grafico[i][j][0] = img_x
-                campo_grafico[i][j][1] = img_x.get_rect(center=(j * 300 + 150, i * 300 + 150))
-            elif campo[i][j] == "O":
-                campo_grafico[i][j][0] = img_o
-                campo_grafico[i][j][1] = img_o.get_rect(center=(j * 300 + 150, i * 300 + 150))
-
-
-def X_ou_O(campo, campo_grafico, mover):
-    #comando que retorna a posição atual do mouse
-    posicao_atual = pygame.mouse.get_pos()
-    #Divisão inteira  por 300 pixels resolve o clique exato
-    coluna = posicao_atual[0] // 300
-    linha = posicao_atual[1] // 300
-
-    #evita erro de índice caso o clique seja na linha de borda final
-    if coluna == 3: coluna = 2
-    if linha == 3: linha = 2
-
-    #verifica se o campo está vazio
-    if campo[linha][coluna] is None:
-        campo[linha][coluna] = mover
-
-        if mover == "O":
-            mover = "X"
-        else:
-            mover = "O"
-
-    Campo_Renderizado(campo, IMG_X, IMG_O)
-
-    for a in range(3):
-        for b in range(3):
-            if campo_grafico[a][b][0] is not None:
-                tela.blit(campo_grafico[a][b][0], campo_grafico[a][b][1])
-
-    return campo, mover
-
-# --- INÍCIO DO MINIMAX BASICO ---
-
+# --- INÍCIO DA LÓGICA DE IA (MINIMAX E PODA ALFA-BETA) ---
 nos_avaliados_basico = 0
+nos_avaliados_poda = 0
 
 def avaliar_estado_silencioso(tabuleiro):
-    # Verifica linhas e colunas
     for i in range(3):
         if tabuleiro[i][0] == tabuleiro[i][1] == tabuleiro[i][2] and tabuleiro[i][0] is not None:
             return tabuleiro[i][0]
         if tabuleiro[0][i] == tabuleiro[1][i] == tabuleiro[2][i] and tabuleiro[0][i] is not None:
             return tabuleiro[0][i]
-            
-    # Verifica diagonais
     if tabuleiro[0][0] == tabuleiro[1][1] == tabuleiro[2][2] and tabuleiro[0][0] is not None:
         return tabuleiro[0][0]
     if tabuleiro[0][2] == tabuleiro[1][1] == tabuleiro[2][0] and tabuleiro[0][2] is not None:
         return tabuleiro[0][2]
-        
-    # Verifica empate
     for i in range(3):
         for j in range(3):
             if tabuleiro[i][j] is None:
-                return None # O jogo ainda não acabou
+                return None 
     return "EMPATE"
 
 def algoritmo_minimax_basico(tabuleiro, maximizando):
@@ -149,9 +35,8 @@ def algoritmo_minimax_basico(tabuleiro, maximizando):
     nos_avaliados_basico += 1
     
     resultado = avaliar_estado_silencioso(tabuleiro)
-    
-    if resultado == "O": return 1  # IA ganha
-    if resultado == "X": return -1 # Pessoa ganha
+    if resultado == "O": return 1  
+    if resultado == "X": return -1 
     if resultado == "EMPATE": return 0
     
     if maximizando:
@@ -159,9 +44,9 @@ def algoritmo_minimax_basico(tabuleiro, maximizando):
         for i in range(3):
             for j in range(3):
                 if tabuleiro[i][j] is None:
-                    tabuleiro[i][j] = "O" # Simula a jogada da IA
+                    tabuleiro[i][j] = "O" 
                     valor = algoritmo_minimax_basico(tabuleiro, False)
-                    tabuleiro[i][j] = None # Desfaz a jogada
+                    tabuleiro[i][j] = None 
                     melhor_valor = max(melhor_valor, valor)
         return melhor_valor
     else:
@@ -169,9 +54,9 @@ def algoritmo_minimax_basico(tabuleiro, maximizando):
         for i in range(3):
             for j in range(3):
                 if tabuleiro[i][j] is None:
-                    tabuleiro[i][j] = "X" # Simula a jogada do Pessoa
+                    tabuleiro[i][j] = "X" 
                     valor = algoritmo_minimax_basico(tabuleiro, True)
-                    tabuleiro[i][j] = None # Desfaz a jogada
+                    tabuleiro[i][j] = None 
                     melhor_valor = min(melhor_valor, valor)
         return melhor_valor
 
@@ -187,23 +72,18 @@ def obter_melhor_jogada_basico(tabuleiro):
                 tabuleiro[i][j] = "O"
                 valor = algoritmo_minimax_basico(tabuleiro, False)
                 tabuleiro[i][j] = None
-                
                 if valor > melhor_valor:
                     melhor_valor = valor
                     melhor_movimento = (i, j)
-                    
     return melhor_movimento, nos_avaliados_basico
-# --- INICIO DO MINIMAX ALFABETA ---
-nos_avaliados_poda = 0
 
 def algoritmo_minimax_alfa_beta(tabuleiro, maximizando, alfa, beta):
     global nos_avaliados_poda
     nos_avaliados_poda += 1
     
     resultado = avaliar_estado_silencioso(tabuleiro)
-    
-    if resultado == "O": return 1  # IA ganha
-    if resultado == "X": return -1 # Pessoa ganha
+    if resultado == "O": return 1  
+    if resultado == "X": return -1 
     if resultado == "EMPATE": return 0
     
     if maximizando:
@@ -211,14 +91,11 @@ def algoritmo_minimax_alfa_beta(tabuleiro, maximizando, alfa, beta):
         for i in range(3):
             for j in range(3):
                 if tabuleiro[i][j] is None:
-                    tabuleiro[i][j] = "O" # Simula a jogada da IA
+                    tabuleiro[i][j] = "O" 
                     valor = algoritmo_minimax_alfa_beta(tabuleiro, False, alfa, beta)
-                    tabuleiro[i][j] = None # Desfaz a jogada
-                    
+                    tabuleiro[i][j] = None 
                     melhor_valor = max(melhor_valor, valor)
                     alfa = max(alfa, melhor_valor)
-                    
-                    # Poda: Se o adversário já tem uma jogada melhor garantida, ignora o resto
                     if beta <= alfa:
                         return melhor_valor 
         return melhor_valor
@@ -227,14 +104,11 @@ def algoritmo_minimax_alfa_beta(tabuleiro, maximizando, alfa, beta):
         for i in range(3):
             for j in range(3):
                 if tabuleiro[i][j] is None:
-                    tabuleiro[i][j] = "X" # Simula a jogada do Pessoa
+                    tabuleiro[i][j] = "X" 
                     valor = algoritmo_minimax_alfa_beta(tabuleiro, True, alfa, beta)
-                    tabuleiro[i][j] = None # Desfaz a jogada
-                    
+                    tabuleiro[i][j] = None 
                     melhor_valor = min(melhor_valor, valor)
                     beta = min(beta, melhor_valor)
-                    
-                    # Poda: Se a IA já achou uma jogada melhor antes, corta este caminho
                     if beta <= alfa:
                         return melhor_valor
         return melhor_valor
@@ -253,321 +127,62 @@ def obter_melhor_jogada_alfa_beta(tabuleiro):
                 tabuleiro[i][j] = "O"
                 valor = algoritmo_minimax_alfa_beta(tabuleiro, False, alfa, beta)
                 tabuleiro[i][j] = None
-                
                 if valor > melhor_valor:
                     melhor_valor = valor
                     melhor_movimento = (i, j)
-                
                 alfa = max(alfa, melhor_valor)
-                    
     return melhor_movimento, nos_avaliados_poda
 
 def obter_movimento_aleatorio(tabuleiro):
-    movimentos_disponiveis = []
-
-    for i in range(3):
-        for j in range(3):
-            if tabuleiro[i][j] is None:
-                movimentos_disponiveis.append((i, j))
-
-    if movimentos_disponiveis:
-        return random.choice(movimentos_disponiveis)
-
-    return None
+    movimentos_disponiveis = [(i, j) for i in range(3) for j in range(3) if tabuleiro[i][j] is None]
+    return random.choice(movimentos_disponiveis) if movimentos_disponiveis else None
 
 def jogar_partida_automatizada(algoritmo):
-    tabuleiro = [
-        [None, None, None],
-        [None, None, None],
-        [None, None, None]
-    ]
-
+    tabuleiro = [[None, None, None], [None, None, None], [None, None, None]]
     jogador_atual = "X"
     total_nos = 0
-
     while True:
         if jogador_atual == "X":
             movimento = obter_movimento_aleatorio(tabuleiro)
-
-            if movimento is not None:
-                linha, coluna = movimento
-                tabuleiro[linha][coluna] = "X"
+            if movimento: tabuleiro[movimento[0]][movimento[1]] = "X"
         else:
             if algoritmo == "MINIMAX":
                 movimento, nos = obter_melhor_jogada_basico(tabuleiro)
             else:
                 movimento, nos = obter_melhor_jogada_alfa_beta(tabuleiro)
-
             total_nos += nos
-
-            if movimento is not None:
-                linha, coluna = movimento
-                tabuleiro[linha][coluna] = "O"
+            if movimento: tabuleiro[movimento[0]][movimento[1]] = "O"
         
         resultado = avaliar_estado_silencioso(tabuleiro)
-
         if resultado is not None:
             return resultado, total_nos
-
-        if jogador_atual == "X":
-            jogador_atual = "O"
-        else:
-            jogador_atual = "X"
-
+        jogador_atual = "O" if jogador_atual == "X" else "X"
 
 def executar_teste(algoritmo, quantidade_partidas=100):
-    vitorias_ia = 0
-    derrotas_ia = 0
-    empates = 0
-    total_nos = 0
-
-    for partida in range(quantidade_partidas):
+    vitorias_ia = derrotas_ia = empates = total_nos = 0
+    for _ in range(quantidade_partidas):
         resultado, nos = jogar_partida_automatizada(algoritmo)
-
         total_nos += nos
-
-        if resultado == "O":
-            vitorias_ia += 1
-        elif resultado == "X":
-            derrotas_ia += 1
-        elif resultado == "EMPATE":
-            empates += 1
-
-    media_nos = total_nos / quantidade_partidas
-
+        if resultado == "O": vitorias_ia += 1
+        elif resultado == "X": derrotas_ia += 1
+        elif resultado == "EMPATE": empates += 1
     return {
-        "algoritmo": algoritmo,
         "partidas": quantidade_partidas,
-        "vitorias_ia": vitorias_ia,
-        "derrotas_ia": derrotas_ia,
-        "empates": empates,
-        "total_nos": total_nos,
-        "media_nos": media_nos
+        "vitorias_ia": vitorias_ia, "derrotas_ia": derrotas_ia, "empates": empates,
+        "total_nos": total_nos, "media_nos": total_nos / quantidade_partidas
     }
 
-
-def jogar_manual():
-    global campo, campo_grafico
-    #as grid do jogo da velha
-    campo = [[None, None, None], [None, None, None], [None, None, None]]
-    campo_grafico = [[[None, None], [None, None], [None, None]], 
-                        [[None, None], [None, None], [None, None]], 
-                        [[None, None], [None, None], [None, None]]]
-    jogo_finalizado = False
-
-    #está implemetando a cor no jogo e desenhando os formatos do jogo
-    tela.fill(cor_da_tela)
-    tela.blit(VELHA, (64, 64))
-
-    #atualizando o jogo para implementar as mudanças
-    pygame.display.update()
-
-    mover = "X"
-    while True:
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-
-            #quando clicar no jogo aparece ou o X ou o O
-            if evento.type == pygame.MOUSEBUTTONDOWN:
-                #código para quando for reiniciar o jogo
-                if jogo_finalizado:
-                    campo = [[None, None, None], [None, None, None], [None, None, None]]
-                    campo_grafico = [[[None, None], [None, None], [None, None]], 
-                                        [[None, None], [None, None], [None, None]], 
-                                        [[None, None], [None, None], [None, None]]]
-
-                    mover = "X"
-
-                    tela.fill(cor_da_tela)
-                    tela.blit(VELHA, (64, 64))
-
-                    jogo_finalizado = False
-
-                    pygame.display.update()
-                else:
-                    campo, mover = X_ou_O(campo, campo_grafico, mover)
-
-                    if Vitoria(campo) is not None:
-                        jogo_finalizado = True
-
-                pygame.display.update()
-
-
-
-def jogar_minimax_basico():
-    global campo, campo_grafico
-    
-    # Prepara o jogo
-    campo = [[None, None, None], [None, None, None], [None, None, None]]
-    campo_grafico = [[[None, None], [None, None], [None, None]], 
-                     [[None, None], [None, None], [None, None]], 
-                     [[None, None], [None, None], [None, None]]]
-    jogo_finalizado = False
-    mover = "X" # Pessoa começa
-
-    tela.fill(cor_da_tela)
-    tela.blit(VELHA, (64, 64))
-    pygame.display.update()
-
-    while True:
-        # --- TURNO DA IA (O) ---
-        if mover == "O" and not jogo_finalizado:
-            print("IA (Minimax Básico) pensando...")
-            
-            movimento, nos = obter_melhor_jogada_basico(campo)
-            
-            if movimento is not None:
-                linha, coluna = movimento
-                print(f"Nós avaliados nesta jogada: {nos}")
-                
-                campo[linha][coluna] = "O"
-                mover = "X"
-                
-                # Atualiza a tela com a jogada da IA
-                Campo_Renderizado(campo, IMG_X, IMG_O)
-                for a in range(3):
-                    for b in range(3):
-                        if campo_grafico[a][b][0] is not None:
-                            tela.blit(campo_grafico[a][b][0], campo_grafico[a][b][1])
-                
-                # Usa a função Vitoria original para desenhar a linha vermelha se a IA ganhar
-                if Vitoria(campo) is not None:
-                    jogo_finalizado = True
-                    
-                pygame.display.update()
-
-        # --- EVENTOS DA JANELA E TURNO Da Pessoa (X) ---
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-
-            if evento.type == pygame.MOUSEBUTTONDOWN:
-                if jogo_finalizado:
-                    # Reinicia
-                    campo = [[None, None, None], [None, None, None], [None, None, None]]
-                    campo_grafico = [[[None, None], [None, None], [None, None]], 
-                                     [[None, None], [None, None], [None, None]], 
-                                     [[None, None], [None, None], [None, None]]]
-                    mover = "X"
-                    tela.fill(cor_da_tela)
-                    tela.blit(VELHA, (64, 64))
-                    jogo_finalizado = False
-                    pygame.display.update()
-                
-                elif mover == "X":
-                    # Pessoa joga
-                    campo, mover = X_ou_O(campo, campo_grafico, mover)
-                    if Vitoria(campo) is not None:
-                        jogo_finalizado = True
-                
-                pygame.display.update()
-def jogar_minimax_poda():
-    global campo, campo_grafico
-    
-    # Prepara o jogo
-    campo = [[None, None, None], [None, None, None], [None, None, None]]
-    campo_grafico = [[[None, None], [None, None], [None, None]], 
-                     [[None, None], [None, None], [None, None]], 
-                     [[None, None], [None, None], [None, None]]]
-    jogo_finalizado = False
-    mover = "X" # Pessoa começa
-
-    tela.fill(cor_da_tela)
-    tela.blit(VELHA, (64, 64))
-    pygame.display.update()
-
-    while True:
-        # --- TURNO DA IA COM PODA ALFA-BETA ---
-        if mover == "O" and not jogo_finalizado:
-            print("IA (Alfa-Beta) pensando...")
-            
-            movimento, nos = obter_melhor_jogada_alfa_beta(campo)
-            
-            if movimento is not None:
-                linha, coluna = movimento
-                print(f"Nós avaliados nesta jogada (COM PODA): {nos}")
-                
-                campo[linha][coluna] = "O"
-                mover = "X"
-                
-                Campo_Renderizado(campo, IMG_X, IMG_O)
-                for a in range(3):
-                    for b in range(3):
-                        if campo_grafico[a][b][0] is not None:
-                            tela.blit(campo_grafico[a][b][0], campo_grafico[a][b][1])
-                
-                if Vitoria(campo) is not None:
-                    jogo_finalizado = True
-                    
-                pygame.display.update()
-
-        # --- EVENTOS DA JANELA E TURNO Da Pessoa ---
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-
-            if evento.type == pygame.MOUSEBUTTONDOWN:
-                if jogo_finalizado:
-                    campo = [[None, None, None], [None, None, None], [None, None, None]]
-                    campo_grafico = [[[None, None], [None, None], [None, None]], 
-                                     [[None, None], [None, None], [None, None]], 
-                                     [[None, None], [None, None], [None, None]]]
-                    mover = "X"
-                    tela.fill(cor_da_tela)
-                    tela.blit(VELHA, (64, 64))
-                    jogo_finalizado = False
-                    pygame.display.update()
-                
-                elif mover == "X":
-                    campo, mover = X_ou_O(campo, campo_grafico, mover)
-                    if Vitoria(campo) is not None:
-                        jogo_finalizado = True
-                
-                pygame.display.update()
-
 def teste_automatizado():
-    print("\n" + "=" * 60)
-    print("TESTE AUTOMATIZADO - MINIMAX")
-    print("=" * 60)
+    print("\n" + "=" * 60 + "\nTESTE AUTOMATIZADO - MINIMAX\n" + "=" * 60)
+    res_mini = executar_teste("MINIMAX", 100)
+    print(f"Partidas: {res_mini['partidas']}\nVitórias da IA: {res_mini['vitorias_ia']}\nDerrotas da IA: {res_mini['derrotas_ia']}\nEmpates: {res_mini['empates']}\nTotal de nós: {res_mini['total_nos']}\nMédia por partida: {res_mini['media_nos']:.2f}")
 
-    resultado_minimax = executar_teste("MINIMAX", 100)
+    print("\n" + "=" * 60 + "\nTESTE AUTOMATIZADO - ALPHA-BETA\n" + "=" * 60)
+    res_ab = executar_teste("ALFA_BETA", 100)
+    print(f"Partidas: {res_ab['partidas']}\nVitórias da IA: {res_ab['vitorias_ia']}\nDerrotas da IA: {res_ab['derrotas_ia']}\nEmpates: {res_ab['empates']}\nTotal de nós: {res_ab['total_nos']}\nMédia por partida: {res_ab['media_nos']:.2f}")
 
-    print(f"Partidas: {resultado_minimax['partidas']}")
-    print(f"Vitórias da IA: {resultado_minimax['vitorias_ia']}")
-    print(f"Derrotas da IA: {resultado_minimax['derrotas_ia']}")
-    print(f"Empates: {resultado_minimax['empates']}")
-    print(f"Total de nós avaliados: {resultado_minimax['total_nos']}")
-    print(f"Média de nós por partida: {resultado_minimax['media_nos']:.2f}")
-
-    print("\n" + "=" * 60)
-    print("TESTE AUTOMATIZADO - ALPHA-BETA")
-    print("=" * 60)
-
-    resultado_alfa_beta = executar_teste("ALFA_BETA", 100)
-
-    print(f"Partidas: {resultado_alfa_beta['partidas']}")
-    print(f"Vitórias da IA: {resultado_alfa_beta['vitorias_ia']}")
-    print(f"Derrotas da IA: {resultado_alfa_beta['derrotas_ia']}")
-    print(f"Empates: {resultado_alfa_beta['empates']}")
-    print(f"Total de nós avaliados: {resultado_alfa_beta['total_nos']}")
-    print(f"Média de nós por partida: {resultado_alfa_beta['media_nos']:.2f}")
-
-    print("\n" + "=" * 60)
-    print("COMPARAÇÃO")
-    print("=" * 60)
-
-    diferenca = (
-        resultado_minimax["total_nos"]
-        - resultado_alfa_beta["total_nos"]
-    )
-
-    print(f"Minimax: {resultado_minimax['total_nos']} nós")
-    print(f"Alpha-Beta: {resultado_alfa_beta['total_nos']} nós")
-    print(f"Redução com Alpha-Beta: {diferenca} nós")
+    print("\n" + "=" * 60 + "\nCOMPARAÇÃO\n" + "=" * 60)
+    print(f"Minimax: {res_mini['total_nos']} nós\nAlpha-Beta: {res_ab['total_nos']} nós\nRedução com Alpha-Beta: {res_mini['total_nos'] - res_ab['total_nos']} nós")
 
 def _normalizar_tabuleiro(tabuleiro):
     return [[v if v in ("X", "O") else None for v in linha] for linha in tabuleiro]
@@ -584,55 +199,256 @@ def obter_jogada_ia(tabuleiro, simbolo_ia, usar_poda=True):
         return obter_melhor_jogada_alfa_beta(tabuleiro_calculo)
     return obter_melhor_jogada_basico(tabuleiro_calculo)
 
-if __name__ == "__main__":
-    #comando para iniciar o jogo
-    pygame.init()
+# --- INÍCIO DO PYGAME E INTERFACE ---
+pygame.init()
+largura, altura = 900, 900
+tela = pygame.display.set_mode((largura, altura))
+pygame.display.set_caption("Jogo da Velha")
 
-    largura, altura = 900, 900
+VELHA = pygame.image.load(caminho_asset('Board.png'))
+IMG_X = pygame.image.load(caminho_asset('X.png'))
+IMG_O = pygame.image.load(caminho_asset('O.png'))
 
-    #Codigos Básicos
-    #tamanho do nosso jogo
-    tela = pygame.display.set_mode((largura, altura))
+cor_da_tela = (214, 201, 227)
+campo = [[None, None, None], [None, None, None], [None, None, None]]
+campo_grafico = [[[None, None], [None, None], [None, None]], 
+                 [[None, None], [None, None], [None, None]], 
+                 [[None, None], [None, None], [None, None]]]
+mover = "X"
 
-    #nome do jogo
-    pygame.display.set_caption("Jogo da Velha")
+def desenhar_linha_vencedora(pos_inicial, pos_final):
+    pygame.draw.line(tela, (220, 20, 60), pos_inicial, pos_final, 15)
+    pygame.display.update()
 
-    #as imagens
-    VELHA = pygame.image.load('assets/Board.png')
-    IMG_X = pygame.image.load('assets/X.png')
-    IMG_O = pygame.image.load('assets/O.png')
+def Vitoria(campo):
+    for linha in range(3):
+        if (campo[linha][0] == campo[linha][1] == campo[linha][2]) and (campo[linha][0] is not None):
+            desenhar_linha_vencedora((50, 150 + linha * 300), (850, 150 + linha * 300))
+            return campo[linha][0]
+    for coluna in range(3):
+        if (campo[0][coluna] == campo[1][coluna] == campo[2][coluna]) and (campo[0][coluna] is not None):
+            desenhar_linha_vencedora((150 + coluna * 300, 50), (150 + coluna * 300, 850))
+            return campo[0][coluna]
+    if (campo[0][0] == campo[1][1] == campo[2][2]) and (campo[0][0] is not None):
+        desenhar_linha_vencedora((50, 50), (850, 850))
+        return campo[0][0]
+    if (campo[0][2] == campo[1][1] == campo[2][0]) and (campo[0][2] is not None):
+        desenhar_linha_vencedora((850, 50), (50, 850))
+        return campo[0][2]
+    
+    for i in range(3):
+        for j in range(3):
+            if campo[i][j] is None:
+                return None
+    return "EMPATE"
 
-    #cor, por formato RGB
-    cor_da_tela = (214, 201, 227)
+def Campo_Renderizado(campo, img_x, img_o):
+    for i in range(3):
+        for j in range(3):
+            if campo[i][j] == "X":
+                campo_grafico[i][j][0] = img_x
+                campo_grafico[i][j][1] = img_x.get_rect(center=(j * 300 + 150, i * 300 + 150))
+            elif campo[i][j] == "O":
+                campo_grafico[i][j][0] = img_o
+                campo_grafico[i][j][1] = img_o.get_rect(center=(j * 300 + 150, i * 300 + 150))
 
-    #as grid do jogo da velha
+def X_ou_O(campo, campo_grafico, mover):
+    pos = pygame.mouse.get_pos()
+    coluna, linha = pos[0] // 300, pos[1] // 300
+    if coluna == 3: coluna = 2
+    if linha == 3: linha = 2
+
+    if campo[linha][coluna] is None:
+        campo[linha][coluna] = mover
+        mover = "O" if mover == "X" else "X"
+
+    Campo_Renderizado(campo, IMG_X, IMG_O)
+    for a in range(3):
+        for b in range(3):
+            if campo_grafico[a][b][0] is not None:
+                tela.blit(campo_grafico[a][b][0], campo_grafico[a][b][1])
+    return campo, mover
+
+fonte_titulo = pygame.font.SysFont(None, 60)
+fonte_botoes = pygame.font.SysFont(None, 40)
+
+estado_atual = "MENU"
+modo_de_jogo = None   
+resultado_texto = ""  
+simbolo_jogador = "X" 
+teste_logs = None
+
+def desenhar_botao(texto, x, y, largura, altura, cor_normal, cor_hover):
+    mouse_pos = pygame.mouse.get_pos()
+    retangulo = pygame.Rect(x, y, largura, altura)
+    cor_atual = cor_hover if retangulo.collidepoint(mouse_pos) else cor_normal
+    pygame.draw.rect(tela, cor_atual, retangulo, border_radius=10)
+    
+    texto_render = fonte_botoes.render(texto, True, (255, 255, 255))
+    texto_rect = texto_render.get_rect(center=retangulo.center)
+    tela.blit(texto_render, texto_rect)
+    return retangulo
+
+def resetar_jogo():
+    global campo, campo_grafico, mover
     campo = [[None, None, None], [None, None, None], [None, None, None]]
     campo_grafico = [[[None, None], [None, None], [None, None]], 
-                    [[None, None], [None, None], [None, None]], 
-                    [[None, None], [None, None], [None, None]]]
-    print("-" * 50)
-    print(" ESCOLHA O MODO DE JOGO ")
-    print("-" * 50)
-    print("1. Jogo Manual (2 Jogadores)")
-    print("2. Teste Automatizado (100 partidas)")
-    print("3. Jogar contra Minimax Básico")
-    print("4. Jogar contra Minimax Poda Alfa-Beta")
-    print("-" * 50)
+                     [[None, None], [None, None], [None, None]], 
+                     [[None, None], [None, None], [None, None]]]
+    mover = "X"
+    tela.fill(cor_da_tela)
+    tela.blit(VELHA, (64, 64))
+    pygame.display.update()
 
-    escolha = input("Digite o número da opção desejada no terminal: ")
+# --- LOOP PRINCIPAL DO JOGO ---
+while True:
+    eventos = pygame.event.get()
+    for evento in eventos:
+        if evento.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+            
+    if estado_atual == "MENU":
+        tela.fill((40, 44, 52))
+        titulo = fonte_titulo.render("JOGO DA VELHA - MINIMAX", True, (255, 255, 255))
+        tela.blit(titulo, (largura//2 - titulo.get_width()//2, 120))
+        
+        b1 = desenhar_botao("Jogar Manualmente", 250, 300, 400, 60, (70, 130, 180), (100, 149, 237))
+        b2 = desenhar_botao("Contra Minimax Básico", 250, 400, 400, 60, (70, 130, 180), (100, 149, 237))
+        b3 = desenhar_botao("Contra Minimax Alfa-Beta", 250, 500, 400, 60, (70, 130, 180), (100, 149, 237))
+        b4 = desenhar_botao("Teste Automatizado", 250, 600, 400, 60, (220, 20, 60), (255, 99, 71))
+        
+        for evento in eventos:
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                if b1.collidepoint(pos):
+                    modo_de_jogo = "MANUAL"
+                    estado_atual = "ESCOLHER_SIMBOLO"
+                elif b2.collidepoint(pos):
+                    modo_de_jogo = "MINIMAX"
+                    estado_atual = "ESCOLHER_SIMBOLO"
+                elif b3.collidepoint(pos):
+                    modo_de_jogo = "ALFA_BETA"
+                    estado_atual = "ESCOLHER_SIMBOLO"
+                elif b4.collidepoint(pos):
+                    estado_atual = "TESTE"
+                    teste_logs = None
 
-    if escolha == '1':
-        print("Abra a janela do Pygame para jogar!")
-        jogar_manual()
-    elif escolha == '2':
-        teste_automatizado()
-    elif escolha == '3':
-        print("Abra a janela do Pygame para jogar!")
-        jogar_minimax_basico()
-    elif escolha == '4':
-        print("Abra a janela do Pygame para jogar!")
-        jogar_minimax_poda()
-    else:
-        print("Opção inválida. Encerrando...")
-        pygame.quit()
-        sys.exit()
+    elif estado_atual == "ESCOLHER_SIMBOLO":
+        tela.fill((40, 44, 52))
+        titulo_simbolo = fonte_titulo.render("ESCOLHA SEU SÍMBOLO", True, (255, 255, 255))
+        tela.blit(titulo_simbolo, (largura//2 - titulo_simbolo.get_width()//2, 200))
+        
+        b_x = desenhar_botao("Jogar com X (Você começa)", 175, 350, 550, 60, (70, 130, 180), (100, 149, 237))
+        b_o = desenhar_botao("Jogar com O (IA começa como X)", 175, 450, 550, 60, (70, 130, 180), (100, 149, 237))
+        bt_voltar_escolha = desenhar_botao("Voltar", 350, 600, 200, 50, (178, 34, 34), (220, 20, 60))
+        
+        for evento in eventos:
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                if b_x.collidepoint(pos):
+                    simbolo_jogador = "X"
+                    estado_atual = "JOGANDO"
+                    resetar_jogo()
+                elif b_o.collidepoint(pos):
+                    simbolo_jogador = "O"
+                    estado_atual = "JOGANDO"
+                    resetar_jogo()
+                elif bt_voltar_escolha.collidepoint(pos):
+                    estado_atual = "MENU"
+                    
+    elif estado_atual == "JOGANDO":
+        if mover == simbolo_jogador or modo_de_jogo == "MANUAL":
+            for evento in eventos:
+                if evento.type == pygame.MOUSEBUTTONDOWN:
+                    campo, mover = X_ou_O(campo, campo_grafico, mover)
+                    vencedor_atual = Vitoria(campo)
+                    if vencedor_atual is not None:
+                        pygame.time.delay(400) 
+                        if vencedor_atual == "EMPATE":
+                            resultado_texto = "Empate!"
+                        elif modo_de_jogo == "MANUAL":
+                            resultado_texto = f"Jogador {vencedor_atual} ganhou!"
+                        elif vencedor_atual == simbolo_jogador:
+                            resultado_texto = "Você ganhou!"
+                        else:
+                            resultado_texto = "A IA ganhou!"
+                        estado_atual = "FIM_DE_JOGO"
+    
+        if estado_atual == "JOGANDO" and mover != simbolo_jogador and modo_de_jogo != "MANUAL":
+            simbolo_ia = "O" if simbolo_jogador == "X" else "X"
+            usar_poda = (modo_de_jogo == "ALFA_BETA")
+            (i, j), nos = obter_jogada_ia(campo, simbolo_ia, usar_poda)
+
+            campo[i][j] = simbolo_ia
+            mover = simbolo_jogador
+
+            Campo_Renderizado(campo, IMG_X, IMG_O)
+            for a in range(3):
+                for b in range(3):
+                    if campo_grafico[a][b][0] is not None:
+                        tela.blit(campo_grafico[a][b][0], campo_grafico[a][b][1])
+
+            pygame.display.update()
+            vencedor_atual = Vitoria(campo)
+            
+            if vencedor_atual is not None:
+                pygame.time.delay(400)
+                if vencedor_atual == "EMPATE":
+                    resultado_texto = "Empate!"
+                elif vencedor_atual == simbolo_jogador:
+                    resultado_texto = "Você ganhou!"
+                else:
+                    resultado_texto = "A IA ganhou!"
+                estado_atual = "FIM_DE_JOGO"
+       
+    elif estado_atual == "FIM_DE_JOGO":
+        pygame.draw.rect(tela, (50, 50, 50), (250, 300, 400, 300), border_radius=15)
+        pygame.draw.rect(tela, (255, 255, 255), (250, 300, 400, 300), width=3, border_radius=15)
+        
+        texto_res = fonte_titulo.render(resultado_texto, True, (255, 215, 0))
+        tela.blit(texto_res, (largura//2 - texto_res.get_width()//2, 330))
+        
+        bt_tentar = desenhar_botao("Tentar Novamente", 300, 420, 300, 50, (34, 139, 34), (50, 205, 50))
+        bt_voltar = desenhar_botao("Voltar ao Menu", 300, 500, 300, 50, (178, 34, 34), (220, 20, 60))
+        
+        for evento in eventos:
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                if bt_tentar.collidepoint(pos):
+                    estado_atual = "JOGANDO"
+                    resetar_jogo()
+                elif bt_voltar.collidepoint(pos):
+                    estado_atual = "MENU"
+
+    elif estado_atual == "TESTE":
+        tela.fill((30, 30, 30))
+        titulo_logs = fonte_titulo.render("Teste Automatizado", True, (255, 255, 255))
+        tela.blit(titulo_logs, (largura//2 - titulo_logs.get_width()//2, 30))
+
+        if teste_logs is None:
+            pygame.display.update()
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                teste_automatizado()
+            linhas_brutas = buffer.getvalue().splitlines()
+            teste_logs = [l for l in linhas_brutas if l.strip() and set(l.strip()) != {"="}]
+
+        fonte_logs = pygame.font.SysFont(None, 28)
+        y = 100
+        for linha in teste_logs:
+            tela.blit(fonte_logs.render(linha, True, (220, 220, 220)), (50, y))
+            y += 30
+
+        bt_rodar_de_novo = desenhar_botao("Rodar Teste Novamente", 275, 700, 350, 50, (34, 139, 34), (50, 205, 50))
+        bt_voltar_teste = desenhar_botao("Voltar ao Menu", 300, 770, 300, 50, (178, 34, 34), (220, 20, 60))
+
+        for evento in eventos:
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                if bt_rodar_de_novo.collidepoint(pos):
+                    teste_logs = None
+                elif bt_voltar_teste.collidepoint(pos):
+                    estado_atual = "MENU"
+                    
+    pygame.display.update()
